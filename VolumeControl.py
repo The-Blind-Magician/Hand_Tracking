@@ -29,16 +29,13 @@ def draw_line(img, lmList, a, b, color):
 def get_two_points(lmList, a, b):
     return [lmList[a][1], lmList[a][2]], [lmList[b][1], lmList[b][2]]
 
-def set_volume(varDist, scaleDist, volume):
-    #factor = scaleDist / 200
-    #a = round_to_multiple((factor * 30), 1)
-    #b = round_to_multiple((factor * 250), 1)
+def get_x_of_hand(lmList):
+    return lmList[WRIST][1]
+
+def set_volume(varDist, volume):
     varDist = np.interp(varDist, [40, 240], [1, 100])
     vol = 20*math.log10(varDist)
-    #print(vol)
-    vol = np.interp(vol, [0, 40], [-65, 0])
-    #vol = round_to_multiple(vol, 0.1)
-    #print(vol)
+    vol = np.interp(vol, [0, 40], [-62, 0])
 
     cv2.putText(img, "Volume: " + str(int(np.interp(vol, [-65, 0], [0, 100]))), (5, 700), cv2.FONT_HERSHEY_PLAIN, 2,
                 (detector.mpDraw.BLUE_COLOR), 2)
@@ -64,6 +61,10 @@ while True:
     hand2 = []
     if(numHands == 2):
         hand2 = detector.findPosition(img, 1)
+        if(get_x_of_hand(hand2) < get_x_of_hand(hand1)):
+            temp = hand1
+            hand1 = hand2
+            hand2 = temp
 
     currentTime = time.time()
     fps = 1 / (currentTime - ptime)
@@ -71,25 +72,25 @@ while True:
 
     if len(hand1) != 0:
         a1, b1 = get_two_points(hand1, THUMB_4, INDEX_4)
-        a3, b3 = get_two_points(hand1, MIDDLE_1, MIDDLE_2)
         draw_line(img, hand1, THUMB_4, INDEX_4, detector.mpDraw.RED_COLOR)
         dist1, midpoint1 = get_distance_midpoint(a1, b1)
-        dist3, midpoint3 = get_distance_midpoint(a3, b3)
 
         dist1 = round_to_multiple(dist1, 5)
-        set_volume(dist1, dist3, volume)
-        cv2.putText(img, str(dist1), (midpoint1[0]-70, midpoint1[1]), cv2.FONT_HERSHEY_PLAIN, 2, (detector.mpDraw.BLUE_COLOR), 3)
+        cv2.putText(img, str(dist1), (midpoint1[0]-70, midpoint1[1]), cv2.FONT_HERSHEY_PLAIN, 2, detector.mpDraw.BLUE_COLOR, 3)
         cv2.circle(img, (midpoint1[0], midpoint1[1]), 2, detector.mpDraw.RED_COLOR, 2)
 
     if len(hand2) != 0:
         a2, b2 = get_two_points(hand2, THUMB_4, INDEX_4)
+        a3, b3 = get_two_points(hand2, MIDDLE_4, MIDDLE_1)
         draw_line(img, hand2, THUMB_4, INDEX_4, detector.mpDraw.RED_COLOR)
         dist2, midpoint2 = get_distance_midpoint(a2, b2, 5)
+        dist3, midpoint3 = get_distance_midpoint(a3, b3)
 
-        cv2.putText(img, str(dist3), (midpoint3[0], midpoint3[1]), cv2.FONT_HERSHEY_PLAIN, 1, (detector.mpDraw.BLUE_COLOR), 2)
-
-        cv2.putText(img, str(dist2), (midpoint2[0], midpoint2[1]), cv2.FONT_HERSHEY_PLAIN, 1, (detector.mpDraw.BLUE_COLOR), 2)
-        cv2.circle(img, (midpoint2[0], midpoint2[1]), 2, detector.mpDraw.RED_COLOR, 3)
+        dist2 = round_to_multiple(dist2, 5)
+        if(dist1 > 100):
+            set_volume(dist2, volume)
+        cv2.putText(img, str(dist2), (midpoint2[0] - 70, midpoint2[1]), cv2.FONT_HERSHEY_PLAIN, 2, detector.mpDraw.BLUE_COLOR, 3)
+        cv2.circle(img, (midpoint2[0], midpoint2[1]), 2, detector.mpDraw.RED_COLOR, 2)
 
     cv2.putText(img, str(int(fps)), (5, 30), cv2.FONT_HERSHEY_PLAIN, 2, (detector.mpDraw.GREEN_COLOR), 2)
     cv2.imshow("Image", img)
